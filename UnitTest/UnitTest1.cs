@@ -61,6 +61,7 @@ namespace UnitTest
 
 			WinDivertBuffer buf = new WinDivertBuffer();
 			Assert.AreEqual((uint)65536, buf.Length);
+			
 			uint len = 0;
 			bool success;
 

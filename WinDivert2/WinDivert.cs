@@ -394,19 +394,19 @@ namespace WinDivert2
 
 			enum Bitfield : byte
 			{
-				Sniffed = 0b0000_0001,
-				Outbound = 0b0000_0010,
-				Loopback = 0b0000_0100,
-				Imposter = 0b0000_1000,
-				IPv6 = 0b0001_0000,
-				IPChecksum = 0b0010_0000,
-				TCPChecksum = 0b0100_0000,
-				UDPChecksum = 0b1000_0000
+				Sniffed = 1 << 0,
+				Outbound = 1 << 1,
+				Loopback = 1 << 2,
+				Imposter = 1 << 3,
+				IPv6 = 1 << 4,
+				IPChecksum = 1 << 5,
+				TCPChecksum = 1 << 6,
+				UDPChecksum = 1 << 7
 			}
 
 			private void Set(Bitfield bit, bool b)
 			{
-				_bFlags = b ? (byte)(_bFlags | (byte)bit) : (byte)(_bFlags & (byte)bit);
+				_bFlags = (byte)(b ? _bFlags | (byte)bit : _bFlags & (byte)~bit);
 			}
 
 			private bool Get(Bitfield bit)

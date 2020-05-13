@@ -43,6 +43,19 @@ namespace WinDivert2
         }
 
         /// <summary>
+        /// Constructs a new buffer from the given buffer data
+        /// </summary>
+        /// <param name="bufferData">The buffer data</param>
+        /// <param name="bufferSize">The size of the buffer</param>
+        public WinDivertBuffer(byte[] bufferData, int bufferSize)
+        {
+            _buffer = new byte[bufferSize];
+            Array.Copy(bufferData, _buffer, bufferSize);
+            _bufferHandle = GCHandle.Alloc(_buffer, GCHandleType.Pinned);
+            BufferPointer = _bufferHandle.AddrOfPinnedObject();
+        }
+
+        /// <summary>
         /// Constructs a new buffer with the given size.
         /// </summary>
         /// <param name="bufferSize"></param>
