@@ -322,8 +322,8 @@ namespace WinDivert2
 			[FieldOffset(8)] private byte _bLayer;
 			[FieldOffset(9)] private byte _bEvent;
 			[FieldOffset(10)] private byte _bFlags;
-			[FieldOffset(11)] public byte Reserved1;
-			[FieldOffset(12)] public uint Reserved2;
+			[FieldOffset(11)] private byte Reserved1;
+			[FieldOffset(12)] private uint Reserved2;
 
 			/* Network and Network_Forward */
 			/// <summary>This field is only valid when using WinDivert.Layer.NETWORK and WinDivert.Layer.NETWORK_FORWARD. The Network.IfIdx/Network.SubIfIdx indicate the packet's network adapter (a.k.a. interface) index. These values are ignored for outbound packets. </summary>
@@ -368,31 +368,78 @@ namespace WinDivert2
 			[FieldOffset(40)] public short ReflectPriority;
 
 			/* Accessor methods for bitpacked fields */
+			/// <summary>The Layer indicates the layer parameter (WinDivert.Layer.*) that was passed to WinDivertOpen(). It is included in the address to make the structure self-contained. </summary>
 			public WinDivert.Layer Layer
 			{
-				get
-				{
-					return (WinDivert.Layer)Convert.ToUInt32(_bLayer);
-				}
-				set
-				{
-					_bLayer = (byte)value;
-				}
+				get => (WinDivert.Layer)Convert.ToUInt32(_bLayer);
+				set => _bLayer = (byte)value;
 			}
 
+			/// <summary>The Event indicates the layer-specific event (WinDivert.Event.*) that was captured.</summary>
 			public WinDivert.Event Event
 			{
-				get
-				{
-					return (WinDivert.Event)Convert.ToUInt32(_bEvent);
-				}
-				set
-				{
-					_bEvent = (byte)value;
-				}
+				get => (WinDivert.Event)Convert.ToUInt32(_bEvent);
+				set => _bEvent = (byte)value;
 			}
 
-			enum Bitfield : byte
+			/// <summary>The Sniffed flag is set for packets that have "sniffed" (i.e., not blocked), cleared otherwise</summary>
+			public bool Sniffed
+			{
+				get => Get(Bitfield.Sniffed);
+				set => Set(Bitfield.Sniffed, value);
+			}
+
+			/// <summary>The Outbound flag is set for outbound packets/events, and is cleared for inbound or direction-less packets/events.</summary>
+			public bool Outbound
+			{
+				get => Get(Bitfield.Outbound);
+				set => Set(Bitfield.Outbound, value);
+			}
+
+			/// <summary>The Loopback flag is set for loopback packets. Note that Windows considers any packet originating from, and destined to, the current machine to be a loopback packet, so loopback packets are not limited to localhost addresses. Note that WinDivert considers loopback packets to be outbound only, and will not capture loopback packets on the inbound path.</summary>
+			public bool Loopback
+			{
+				get => Get(Bitfield.Loopback);
+				set => Set(Bitfield.Loopback, value);
+			}
+
+			/// <summary>The Impostor flag is set for impostor packets. An impostor packet is any packet injected by another driver rather than originating from the network or Windows TCP/IP stack. Impostor packets are problematic since they can cause infinite loops, where a packet injected by WinDivertSend() is captured again by WinDivertRecv(). For more information, see WinDivertSend().</summary>
+			public bool Imposter
+			{
+				get => Get(Bitfield.Imposter);
+				set => Set(Bitfield.Imposter, value);
+			}
+
+			/// <summary>The IPv6 flag is set for IPv6 packets/events, and cleared for IPv4 packets/events.</summary>
+			public bool IPv6
+			{
+				get => Get(Bitfield.IPv6);
+				set => Set(Bitfield.IPv6, value);
+			}
+
+			/// <summary>The IPChecksum flag indicate whether the packet has a valid checksum or not. When IP/TCP/UDP checksum offloading is enabled, it is possible that captured packets do not have valid checksums. Invalid checksums may be arbitrary values.</summary>
+			public bool IPChecksum
+			{
+				get => Get(Bitfield.IPChecksum);
+				set => Set(Bitfield.IPChecksum, value);
+			}
+
+			/// <summary>The TCPChecksum flag indicate whether the packet has a valid checksum or not. When IP/TCP/UDP checksum offloading is enabled, it is possible that captured packets do not have valid checksums. Invalid checksums may be arbitrary values.</summary>
+			public bool TCPChecksum
+			{
+				get => Get(Bitfield.TCPChecksum);
+				set => Set(Bitfield.TCPChecksum, value);
+			}
+
+			/// <summary>The UDPChecksum flag indicate whether the packet has a valid checksum or not. When IP/TCP/UDP checksum offloading is enabled, it is possible that captured packets do not have valid checksums. Invalid checksums may be arbitrary values. </summary>
+			public bool UDPChecksum
+			{
+				get => Get(Bitfield.UDPChecksum);
+				set => Set(Bitfield.UDPChecksum, value);
+			}
+
+			/// <summary>Bitfield positions for items in the _bFlags bit array.</summary>
+			private enum Bitfield : byte
 			{
 				Sniffed = 1 << 0,
 				Outbound = 1 << 1,
@@ -404,68 +451,102 @@ namespace WinDivert2
 				UDPChecksum = 1 << 7
 			}
 
+			/// <summary>Set or unset a bit in the _bFlags bitfield.</summary>
 			private void Set(Bitfield bit, bool b)
 			{
 				_bFlags = (byte)(b ? _bFlags | (byte)bit : _bFlags & (byte)~bit);
 			}
 
+			/// <summary>Get the flag of a bit in the _bFlags bitfield.</summary>
 			private bool Get(Bitfield bit)
 			{
 				return (_bFlags & (byte)bit) != 0;
 			}
+		}
 
-			public bool Sniffed
+		/// <summary>
+		/// IPv4 header definition. 
+		/// </summary>
+		[StructLayout(LayoutKind.Sequential)]
+		public struct IPHeader
+		{
+			private byte _hdr;
+			public byte TOS;
+			public ushort Length;
+			public ushort Id;
+			private ushort FragOff0;
+			public byte TTL;
+			public Protocol Protocol;
+			public ushort Checksum;
+			public uint SrcAddr;
+			public uint DstAddr;
+
+			/// <summary>
+			/// Internet Header Length (IHL) contains the size of the IPv4 header, it has 4 bits that specify the number of 32-bit words in the header. The minimum value for this field is 5 and the maximum size is 15.
+			/// </summary>
+			public int HdrLength
 			{
-				get { return Get(Bitfield.Sniffed); }
-				set { Set(Bitfield.Sniffed, value); }
+				get => _hdr >> 4;
+				set => _hdr = (byte)((_hdr & ~0xf0) | ((byte)(value << 4) & 0xf0));
 			}
 
-			public bool Outbound
+			/// <summary>
+			/// The first header field in an IP packet is the four-bit version field. For IPv4, this is always equal to 4.
+			/// </summary>
+			public int Version
 			{
-				get { return Get(Bitfield.Outbound); }
-				set { Set(Bitfield.Outbound, value); }
+				get => _hdr & 0x0f;
+				set => _hdr = (byte)((_hdr & ~0x0f) | ((byte)value & 0x0f));
 			}
 
-			public bool Loopback
+			/// <summary>
+			/// The fragment offset field is measured in units of eight-byte blocks. It is 13 bits long and specifies the offset of a particular fragment relative to the beginning of the original unfragmented IP datagram. The first fragment has an offset of zero.
+			/// </summary>
+			public ushort FragmentOffset
 			{
-				get { return Get(Bitfield.Loopback); }
-				set { Set(Bitfield.Loopback, value); }
+				get => (ushort)(FragOff0 & 0xFF1F);
+				set => FragOff0 = (ushort)((FragOff0 & 0x00E0) | (value & 0xFF1F));
 			}
 
-			public bool Imposter
+			/// <summary>
+			/// The original packet was fragmented, and there are more fragments to come. For fragmented packets, all fragments except the last have this flag set. The last fragment has a non-zero Fragment Offset, differentiating it from an unfragmented packet.
+			/// </summary>
+			public bool MoreFragments
 			{
-				get { return Get(Bitfield.Imposter); }
-				set { Set(Bitfield.Imposter, value); }
+				get => (FragOff0 & 0x0020) != 0;
+				set => FragOff0 = (ushort)((FragOff0 & 0xFFDF) | (Convert.ToUInt16(value) & 0x0001) << 5);
 			}
 
-			public bool IPv6
+			/// <summary>
+			/// If the DontFragment flag is set, and fragmentation is required to route the packet, then the packet is dropped.
+			/// </summary>
+			public bool DontFragment
 			{
-				get { return Get(Bitfield.IPv6); }
-				set { Set(Bitfield.IPv6, value); }
+				get => (FragOff0 & 0x0040) != 0;
+				set => FragOff0 = (ushort)((FragOff0 & 0xFFBF) | (Convert.ToUInt16(value) & 0x0001) << 6);
 			}
+		}
 
-			public bool IPChecksum
-			{
-				get { return Get(Bitfield.IPChecksum); }
-				set { Set(Bitfield.IPChecksum, value); }
-			}
-
-			public bool TCPChecksum
-			{
-				get { return Get(Bitfield.TCPChecksum); }
-				set { Set(Bitfield.TCPChecksum, value); }
-			}
-
-			public bool UDPChecksum
-			{
-				get { return Get(Bitfield.UDPChecksum); }
-				set { Set(Bitfield.UDPChecksum, value); }
-			}
+		/// <summary>
+		/// IPv4 header definition. 
+		/// </summary>
+		[StructLayout(LayoutKind.Sequential)]
+		public struct IPv6Header
+		{
+			[MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
+			private byte _hdr;
+			public ushort Length;
+			public byte NextHdr;
+			public byte HopLimit;
+			[MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
+			public uint[] SrcAddr;
+			[MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
+			public uint[] DstAddr;
 		}
 		#endregion
 
 		#region Error Handling
-		public static int _GetLastError()
+			public static int _GetLastError()
 		{
 			return Marshal.GetLastWin32Error();
 		}
