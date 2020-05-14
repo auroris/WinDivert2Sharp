@@ -528,13 +528,13 @@ namespace WinDivert2
 		}
 
 		/// <summary>
-		/// IPv4 header definition. 
+		/// IPv6 header definition. 
 		/// </summary>
 		[StructLayout(LayoutKind.Sequential)]
 		public struct IPv6Header
 		{
 			[MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
-			private byte _hdr;
+			private byte[] _hdr;
 			public ushort Length;
 			public byte NextHdr;
 			public byte HopLimit;
@@ -542,6 +542,34 @@ namespace WinDivert2
 			public uint[] SrcAddr;
 			[MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
 			public uint[] DstAddr;
+
+			/// <summary>The four-bit version field. For IPv6, this is always equal to 6.</summary>
+			public uint Version
+			{
+				get => (uint)(_hdr[0] & 0x0f);
+				set => _hdr[0] = (byte)((_hdr[0] & ~0x0f) | ((byte)value & 0x0f));
+			}
+
+			public uint TrafficClass
+			{ 
+				get => (uint)((_hdr[0] & ~0x0f) | (_hdr[1] & ~0xf0));
+				set
+				{
+					_hdr[0] = (byte)((_hdr[0] & ~0xf0) | ((byte)value & 0xf0));
+					_hdr[1] = (byte)((_hdr[1] & ~0x0f) | ((byte)value & 0x0f));
+				}
+			}
+
+			public uint FlowLabel
+			{
+				get => (uint)(((_hdr[1] & ~0x0f) << 12) | ((_hdr[2]) << 8) | _hdr[3]);
+				set
+				{
+					_hdr[1] = (byte)((_hdr[1] & ~0xf0) | ((byte)((value >> 16) << 4) & 0xf0));
+					_hdr[2] = (byte)(value >> 8);
+					_hdr[3] = (byte)value;
+				}
+			}
 		}
 		#endregion
 
