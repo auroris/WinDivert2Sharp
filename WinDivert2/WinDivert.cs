@@ -487,7 +487,7 @@ namespace WinDivert2
 			public int HdrLength
 			{
 				get => _hdr >> 4;
-				set => _hdr = (byte)((_hdr & ~0xf0) | ((byte)(value << 4) & 0xf0));
+				set => _hdr = (byte)((_hdr & ~0xf0u) | ((byte)(value << 4) & 0xf0u));
 			}
 
 			/// <summary>
@@ -496,7 +496,7 @@ namespace WinDivert2
 			public int Version
 			{
 				get => _hdr & 0x0f;
-				set => _hdr = (byte)((_hdr & ~0x0f) | ((byte)value & 0x0f));
+				set => _hdr = (byte)((_hdr & ~0x0fu) | ((byte)value & 0x0fu));
 			}
 
 			/// <summary>
@@ -504,8 +504,8 @@ namespace WinDivert2
 			/// </summary>
 			public ushort FragmentOffset
 			{
-				get => (ushort)(FragOff0 & 0xFF1F);
-				set => FragOff0 = (ushort)((FragOff0 & 0x00E0) | (value & 0xFF1F));
+				get => (ushort)(FragOff0 & 0xFF1Fu);
+				set => FragOff0 = (ushort)((FragOff0 & 0x00E0u) | (value & 0xFF1Fu));
 			}
 
 			/// <summary>
@@ -514,7 +514,7 @@ namespace WinDivert2
 			public bool MoreFragments
 			{
 				get => (FragOff0 & 0x0020) != 0;
-				set => FragOff0 = (ushort)((FragOff0 & 0xFFDF) | (Convert.ToUInt16(value) & 0x0001) << 5);
+				set => FragOff0 = (ushort)((FragOff0 & 0xFFDFu) | (Convert.ToUInt16(value) & 0x0001u) << 5);
 			}
 
 			/// <summary>
@@ -522,8 +522,8 @@ namespace WinDivert2
 			/// </summary>
 			public bool DontFragment
 			{
-				get => (FragOff0 & 0x0040) != 0;
-				set => FragOff0 = (ushort)((FragOff0 & 0xFFBF) | (Convert.ToUInt16(value) & 0x0001) << 6);
+				get => (FragOff0 & 0x0040u) != 0;
+				set => FragOff0 = (ushort)((FragOff0 & 0xFFBFu) | (Convert.ToUInt16(value) & 0x0001u) << 6);
 			}
 		}
 
@@ -546,8 +546,8 @@ namespace WinDivert2
 			/// <summary>The four-bit version field. For IPv6, this is always equal to 6.</summary>
 			public uint Version
 			{
-				get => (uint)(_hdr[0] & 0x0f);
-				set => _hdr[0] = (byte)((_hdr[0] & ~0x0f) | ((byte)value & 0x0f)); // Assignment to the right-half of the first byte
+				get => (uint)(_hdr[0] & 0x0fu);
+				set => _hdr[0] = (byte)((_hdr[0] & ~0x0fu) | ((byte)value & 0x0fu)); // Assignment to the right-half of the first byte
 			}
 
 			public uint TrafficClass
@@ -555,8 +555,8 @@ namespace WinDivert2
 				get => (uint)((_hdr[0] & ~0x0f) | (_hdr[1] & ~0xf0));
 				set
 				{
-					_hdr[0] = (byte)((_hdr[0] & ~0xf0) | ((byte)value & 0xf0)); // Assignment to the left-half of the first byte
-					_hdr[1] = (byte)((_hdr[1] & ~0x0f) | ((byte)value & 0x0f)); // Assignment to the right-half of the second byte
+					_hdr[0] = (byte)((_hdr[0] & ~0xf0u) | ((byte)value & 0xf0u)); // Assignment to the left-half of the first byte
+					_hdr[1] = (byte)((_hdr[1] & ~0x0fu) | ((byte)value & 0x0fu)); // Assignment to the right-half of the second byte
 				}
 			}
 
@@ -565,9 +565,9 @@ namespace WinDivert2
 				get => (uint)(((_hdr[1] & ~0x0f) << 12) | ((_hdr[2]) << 8) | _hdr[3]);
 				set
 				{
-					_hdr[1] = (byte)((_hdr[1] & ~0xf0) | ((byte)((value >> 16) << 4) & 0xf0)); // Assignment to the left-half of the second byte
-					_hdr[2] = (byte)(value >> 8); // All of the third byte
-					_hdr[3] = (byte)value; // All of the fourth byte
+					_hdr[1] = (byte)((value & 0x0f0000u) >> 16 | (_hdr[1] ^ 0xf0u));
+					_hdr[2] = (byte)((value & 0x00ff00u) >> 8);
+					_hdr[3] = (byte)((value & 0x0000ffu) >> 0);
 				}
 			}
 		}
